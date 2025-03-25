@@ -47,8 +47,8 @@ with st.expander("📂 Download Excel Templates"):
 # --- Upload Section ---
 st.sidebar.header("Upload Excel Files")
 
-activity_file = st.sidebar.file_uploader("📅 Upload activity_data.xlsx", type=["xlsx"])
-emission_file = st.sidebar.file_uploader("📅 Upload emission_factors.xlsx", type=["xlsx"])
+activity_file = st.sidebar.file_uploader(" Upload activity_data.xlsx", type=["xlsx"])
+emission_file = st.sidebar.file_uploader(" Upload emission_factors.xlsx", type=["xlsx"])
 
 if activity_file and emission_file:
     try:
