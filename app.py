@@ -36,7 +36,7 @@ with st.expander("📂 Download Excel Templates"):
             "Country": ["UK"],
             "Category": ["Electricity"],
             "Activity": ["Purchased electricity"],
-            "Location-Based EF": [0.233],
+            "Emission Factor (location-based ef)": [0.233],
             "Market-Based EF": [0.160],
             "Unit": ["kgCO2e/kWh"]
         })
@@ -55,6 +55,7 @@ if activity_file and emission_file:
         # --- Load Emission Factors ---
         emission_df = pd.read_excel(emission_file)
         emission_df.columns = emission_df.columns.str.strip().str.lower()
+        emission_df.rename(columns={"emission factor (location-based ef)": "location-based ef"}, inplace=True)
         emission_df["unit"] = emission_df["unit"].str.strip().str.lower()
         emission_df["base unit"] = emission_df["unit"].apply(lambda x: x.split("/")[-1])
 
@@ -98,7 +99,7 @@ if activity_file and emission_file:
             right_on=["year", "scope", "category", "activity", "base unit"],
             how="left"
         )
-        other_merged["emissions (kg co2e)"] = other_merged["amount"] * other_merged["emission factor"]
+        other_merged["emissions (kg co2e)"] = other_merged["amount"] * other_merged["location-based ef"]
 
         # --- Combine for Location-Based and Market-Based Reporting ---
         def prepare_summary(df, scope2_col):
