@@ -122,7 +122,6 @@ if activity_file and emission_file:
         st.subheader("📊 Emissions by Scope")
         fig, ax = plt.subplots(figsize=(8, 5))
         sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax)
-
         ax.set_title("Total Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
         ax.set_xlabel("Scope", fontsize=12)
         ax.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
