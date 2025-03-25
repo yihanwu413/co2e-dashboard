@@ -103,9 +103,9 @@ if activity_file and emission_file:
         scope2_merged["location-based"] = scope2_merged["amount"] * scope2_merged["location-based ef"]
         scope2_merged["market-based"] = scope2_merged["amount"] * scope2_merged["market-based ef"]
 
-        # --- Merge other scopes ---
+        # --- Merge other scopes (ignore country) ---
         other_merged = other_scopes_df.merge(
-            emission_df,
+            emission_df.drop(columns=["country"], errors="ignore"),
             left_on=["year", "scope", "category", "activity", "unit"],
             right_on=["year", "scope", "category", "activity", "base unit"],
             how="left"
