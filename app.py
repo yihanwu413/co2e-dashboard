@@ -31,14 +31,15 @@ with st.expander("📂 Download Excel Templates"):
     with col2:
         st.markdown("**📘 Emission Factors Template**")
         factors_template = pd.DataFrame({
-            "Year": [2024],
-            "Scope": ["Scope 2"],
-            "Country": ["UK"],
-            "Category": ["Electricity"],
-            "Activity": ["Purchased electricity"],
-            "Location-Based EF": [0.233],
-            "Market-Based EF": [0.160],
-            "Unit": ["kgCO2e/kWh"]
+            "Year": [2024, 2024, 2024],
+            "Scope": ["Scope 2", "Scope 1", "Scope 3"],
+            "Country": ["UK", "UK", "UK"],
+            "Category": ["Electricity", "Fuel", "Travel"],
+            "Activity": ["Purchased electricity", "Natural gas", "Business travel"],
+            "Emission Factor": [None, 0.183, 0.158],
+            "Location-Based EF": [0.233, None, None],
+            "Market-Based EF": [0.160, None, None],
+            "Unit": ["kgCO2e/kWh", "kgCO2e/kWh", "kgCO2e/km"]
         })
         buffer2 = io.BytesIO()
         factors_template.to_excel(buffer2, index=False)
@@ -64,8 +65,8 @@ if activity_file and emission_file:
         activity_df["unit"] = activity_df["unit"].str.strip().str.lower()
 
         # --- Validate Required Columns ---
-        required_activity_cols = {"year", "scope", "category", "activity", "amount", "unit", "entity"}
-        required_factors_cols = {"year", "scope", "category", "activity", "unit"}
+        required_activity_cols = {"year", "scope", "category", "activity", "amount", "unit", "entity", "country"}
+        required_factors_cols = {"year", "scope", "category", "activity", "unit", "country"}
 
         missing_act_cols = required_activity_cols - set(activity_df.columns)
         missing_fac_cols = required_factors_cols - set(emission_df.columns)
@@ -91,37 +92,36 @@ if activity_file and emission_file:
         scope2_merged["location-based"] = scope2_merged["amount"] * scope2_merged["location-based ef"]
         scope2_merged["market-based"] = scope2_merged["amount"] * scope2_merged["market-based ef"]
 
-        # --- Merge other scopes ---
+        # --- Merge other scopes (use 'emission factor') ---
         other_merged = other_scopes_df.merge(
             emission_df,
-            left_on=["year", "scope", "category", "activity", "unit"],
-            right_on=["year", "scope", "category", "activity", "base unit"],
+            on=["year", "scope", "category", "activity", "country"],
             how="left"
         )
         other_merged["emissions (kg co2e)"] = other_merged["amount"] * other_merged["emission factor"]
 
         # --- Combine for Location-Based and Market-Based Reporting ---
-        def prepare_summary(df, scope2_col):
-            df_combined = pd.concat([
+        def prepare_summary(scope2_col):
+            combined = pd.concat([
                 other_merged[["entity", "scope", "emissions (kg co2e)"]],
                 scope2_merged[["entity", "scope", scope2_col]].rename(columns={scope2_col: "emissions (kg co2e)"})
             ], ignore_index=True)
 
-            total_by_scope = df_combined.groupby("scope")["emissions (kg co2e)"].sum().reset_index()
+            total_by_scope = combined.groupby("scope")["emissions (kg co2e)"].sum().reset_index()
             total = total_by_scope["emissions (kg co2e)"].sum()
             total_by_scope = pd.concat([
                 total_by_scope,
                 pd.DataFrame({"scope": [f"Total GHG Emissions ({scope2_col.replace('-', ' ').title()})"], "emissions (kg co2e)": [total]})
             ], ignore_index=True)
 
-            entity_scope = df_combined.groupby(["entity", "scope"])["emissions (kg co2e)"].sum().reset_index()
+            entity_scope = combined.groupby(["entity", "scope"])["emissions (kg co2e)"].sum().reset_index()
             pivot = entity_scope.pivot(index="entity", columns="scope", values="emissions (kg co2e)").fillna(0)
             pivot["Total GHG Emissions"] = pivot.sum(axis=1)
 
             return total_by_scope, pivot.reset_index()
 
-        location_summary, location_entity_summary = prepare_summary(scope2_merged, "location-based")
-        market_summary, market_entity_summary = prepare_summary(scope2_merged, "market-based")
+        location_summary, location_entity_summary = prepare_summary("location-based")
+        market_summary, market_entity_summary = prepare_summary("market-based")
 
         # --- Display ---
         st.success("✅ Emissions calculated successfully!")
@@ -167,3 +167,4 @@ if activity_file and emission_file:
 
 else:
     st.info("📈 Upload both Activity Data and Emission Factors to begin.")
+
