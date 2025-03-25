@@ -120,13 +120,13 @@ if activity_file and emission_file:
 
         # --- Visualizations ---
         st.subheader("📊 Emissions by Scope")
-        fig, ax = plt.subplots(figsize=(8, 5))
-        sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax)
+        fig1, ax1 = plt.subplots(figsize=(8, 5))
+        sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax1)
         ax.set_title("Total Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
         ax.set_xlabel("Scope", fontsize=12)
         ax.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
         ax.tick_params(axis='x', labelrotation=45)
-        sns.despine()
+        sns.despine(fig1)
 
         st.subheader("🎂 Share of Emissions by Scope")
         fig2, ax2 = plt.subplots()
