@@ -17,10 +17,11 @@ with st.expander("📂 Download Excel Templates"):
         activity_template = pd.DataFrame({
             "Year": [2024],
             "Entity": ["Company A"],
-            "Scope": ["Scope 1"],
-            "Category": ["Fuel"],
-            "Activity": ["Natural gas"],
-            "Amount": [1000],
+            "Scope": ["Scope 2"],
+            "Country": ["UK"],
+            "Category": ["Electricity"],
+            "Activity": ["Purchased electricity"],
+            "Amount": [10000],
             "Unit": ["kWh"]
         })
         buffer1 = io.BytesIO()
@@ -31,39 +32,52 @@ with st.expander("📂 Download Excel Templates"):
         st.markdown("**📘 Emission Factors Template**")
         factors_template = pd.DataFrame({
             "Year": [2024],
-            "Scope": ["Scope 1"],
-            "Category": ["Fuel"],
-            "Activity": ["Natural gas"],
-            "Emission factor": [0.183],
+            "Scope": ["Scope 2"],
+            "Country": ["UK"],
+            "Category": ["Electricity"],
+            "Activity": ["Purchased electricity"],
+            "Emission Factor (location-based ef)": [0.233],
+            "Market-Based EF": [0.160],
             "Unit": ["kgCO2e/kWh"]
         })
         buffer2 = io.BytesIO()
         factors_template.to_excel(buffer2, index=False)
         st.download_button("⬇️ Download Emission Factors Template", buffer2.getvalue(), "emission_factors_template.xlsx")
 
-
 # --- Upload Section ---
 st.sidebar.header("Upload Excel Files")
 
-activity_file = st.sidebar.file_uploader("📥 Upload activity_data.xlsx", type=["xlsx"])
-emission_file = st.sidebar.file_uploader("📥 Upload emission_factors.xlsx", type=["xlsx"])
+activity_file = st.sidebar.file_uploader("📅 Upload activity_data.xlsx", type=["xlsx"])
+emission_file = st.sidebar.file_uploader("📅 Upload emission_factors.xlsx", type=["xlsx"])
 
 if activity_file and emission_file:
     try:
         # --- Load Emission Factors ---
         emission_df = pd.read_excel(emission_file)
         emission_df.columns = emission_df.columns.str.strip().str.lower()
-        emission_df["unit"] = emission_df["unit"].str.strip().str.lower()
+        emission_df.rename(columns={"emission factor (location-based ef)": "location-based ef"}, inplace=True)
+
+        for col in ["unit", "country", "scope", "category", "activity"]:
+            if col in emission_df.columns:
+                emission_df[col] = emission_df[col].astype(str).str.strip().str.lower()
+
+        emission_df["location-based ef"] = pd.to_numeric(emission_df["location-based ef"], errors="coerce")
+        if "market-based ef" in emission_df.columns:
+            emission_df["market-based ef"] = pd.to_numeric(emission_df["market-based ef"], errors="coerce")
+
         emission_df["base unit"] = emission_df["unit"].apply(lambda x: x.split("/")[-1])
 
         # --- Load Activity Data ---
         activity_df = pd.read_excel(activity_file)
         activity_df.columns = activity_df.columns.str.strip().str.lower()
-        activity_df["unit"] = activity_df["unit"].str.strip().str.lower()
+
+        for col in ["unit", "country", "scope", "category", "activity"]:
+            if col in activity_df.columns:
+                activity_df[col] = activity_df[col].astype(str).str.strip().str.lower()
 
         # --- Validate Required Columns ---
-        required_activity_cols = {"year", "scope", "category", "activity", "amount", "unit"}
-        required_factors_cols = {"year", "scope", "category", "activity", "emission factor", "unit"}
+        required_activity_cols = {"year", "scope", "category", "activity", "amount", "unit", "entity"}
+        required_factors_cols = {"year", "scope", "category", "activity", "unit"}
 
         missing_act_cols = required_activity_cols - set(activity_df.columns)
         missing_fac_cols = required_factors_cols - set(emission_df.columns)
@@ -76,116 +90,93 @@ if activity_file and emission_file:
             st.error(f"❌ Missing columns in emission factors: {', '.join(missing_fac_cols)}")
             st.stop()
 
-        # --- Merge ---
-        merged_df = activity_df.merge(
+        # --- Separate Scope 2 and Other Scopes ---
+        scope2_df = activity_df[activity_df["scope"] == "scope 2"]
+        other_scopes_df = activity_df[activity_df["scope"] != "scope 2"]
+
+        # --- Merge Scope 2 with location & market-based EF ---
+        scope2_merged = scope2_df.merge(
+            emission_df,
+            on=["year", "scope", "category", "activity", "country"],
+            how="left"
+        )
+        scope2_merged["location-based"] = scope2_merged["amount"] * scope2_merged["location-based ef"]
+        scope2_merged["market-based"] = scope2_merged["amount"] * scope2_merged["market-based ef"]
+
+        # --- Merge other scopes ---
+        other_merged = other_scopes_df.merge(
             emission_df,
             left_on=["year", "scope", "category", "activity", "unit"],
             right_on=["year", "scope", "category", "activity", "base unit"],
             how="left"
-        ).drop(columns=["base unit"])
+        )
+        other_merged["location-based ef"] = pd.to_numeric(other_merged["location-based ef"], errors="coerce")
+        other_merged["emissions (kg co2e)"] = other_merged["amount"] * other_merged["location-based ef"]
 
-        # --- Calculate Emissions ---
-        merged_df["emissions (kg co2e)"] = merged_df["amount"] * merged_df["emission factor"]
+        # --- Combine for Location-Based and Market-Based Reporting ---
+        def prepare_summary(df, scope2_col):
+            df_combined = pd.concat([
+                other_merged[["entity", "scope", "emissions (kg co2e)"]],
+                scope2_merged[["entity", "scope", scope2_col]].rename(columns={scope2_col: "emissions (kg co2e)"})
+            ], ignore_index=True)
 
-        # --- Summarize by Scope ---
-        scope_summary = merged_df.groupby("scope")["emissions (kg co2e)"].sum().reset_index()
-        total_row = pd.DataFrame({
-            "scope": ["Total GHG Emissions"],
-            "emissions (kg co2e)": [scope_summary["emissions (kg co2e)"].sum()]
-        })
-        scope_summary = pd.concat([scope_summary, total_row], ignore_index=True)
+            total_by_scope = df_combined.groupby("scope")["emissions (kg co2e)"].sum().reset_index()
+            total = total_by_scope["emissions (kg co2e)"].sum()
+            total_by_scope = pd.concat([
+                total_by_scope,
+                pd.DataFrame({"scope": [f"Total GHG Emissions ({scope2_col.replace('-', ' ').title()})"], "emissions (kg co2e)": [total]})
+            ], ignore_index=True)
 
-        # --- Summarize by Entity + Scope ---
-        if "entity" in merged_df.columns:
-            entity_summary_raw = merged_df.groupby(["entity", "scope"])["emissions (kg co2e)"].sum().reset_index()
-            entity_summary_pivot = entity_summary_raw.pivot(index="entity", columns="scope", values="emissions (kg co2e)").fillna(0)
-            entity_summary_pivot["total ghg emissions"] = entity_summary_pivot.sum(axis=1)
-            entity_summary = entity_summary_pivot.reset_index()
-        else:
-            entity_summary = None
+            entity_scope = df_combined.groupby(["entity", "scope"])["emissions (kg co2e)"].sum().reset_index()
+            pivot = entity_scope.pivot(index="entity", columns="scope", values="emissions (kg co2e)").fillna(0)
+            pivot["Total GHG Emissions"] = pivot.sum(axis=1)
 
-        # --- Display Results ---
+            return total_by_scope, pivot.reset_index()
+
+        location_summary, location_entity_summary = prepare_summary(scope2_merged, "location-based")
+        market_summary, market_entity_summary = prepare_summary(scope2_merged, "market-based")
+
+        # --- Display ---
         st.success("✅ Emissions calculated successfully!")
 
-        st.subheader("📄 Emissions Data")
-        st.dataframe(merged_df)
+        st.subheader("📋 Location-Based Emissions Summary")
+        st.dataframe(location_summary)
 
-        st.subheader("📋 Scope Summary")
-        st.dataframe(scope_summary)
+        st.subheader("🏢 Location-Based Emissions by Entity")
+        st.dataframe(location_entity_summary)
 
-        if entity_summary is not None:
-            st.subheader("🏢 Entity Scope Summary")
-            st.dataframe(entity_summary)
+        st.subheader("📋 Market-Based Emissions Summary")
+        st.dataframe(market_summary)
 
-        # --- Visualizations ---
-        # 📊 Emissions by Scope (Bar Chart)
-        st.subheader("📊 Emissions by Scope")
-        col1, col2, col3 = st.columns([2, 1.5, 2])
-        with col2:
-            fig1, ax1 = plt.subplots(figsize=(5, 4))
-            sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax1, palette="coolwarm")
-            ax1.set_title("Total Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
-            ax1.set_xlabel("Scope", fontsize=12)
-            ax1.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
-            ax1.tick_params(axis='x', labelrotation=45)
-            sns.despine(fig1)
-            plt.tight_layout()
-            st.pyplot(fig1)
+        st.subheader("🏢 Market-Based Emissions by Entity")
+        st.dataframe(market_entity_summary)
 
-        # 🎂 Share of Emissions (Pie Chart)
-        st.subheader("🎂 Share of Emissions by Scope")
-        col4, col5, col6 = st.columns([2, 1.5, 2])
-        with col5:
-            fig2, ax2 = plt.subplots(figsize=(5, 5))
-            colors = sns.color_palette("coolwarm")
-            ax2.pie(
-                scope_summary[:-1]["emissions (kg co2e)"],
-                labels=scope_summary[:-1]["scope"],
-                autopct="%1.1f%%",
-                startangle=90,
-                colors=colors,
-                textprops={"fontsize": 11, "color": "#333"}
-            )
-            ax2.set_title("Share of Emissions by Scope", fontsize=14, fontweight="bold", color="#0A3A5C")
-            ax2.axis("equal")
-            plt.tight_layout()
-            st.pyplot(fig2)
-
-        # 🏢 Entity-Level Emissions (Stacked Bar)
-        if entity_summary is not None:
-            st.subheader("🏢 Emissions by Entity and Scope")
-            col7, col8, col9 = st.columns([2, 1.5, 2])
-            with col8:
-                fig3, ax3 = plt.subplots(figsize=(7, 5))
-
-                custom_colors = ["#0A3A5C", "#5097BA", "#87C4E0"]  # Replace or extend with your brand colors
-
-                entity_summary.set_index("entity").drop(columns=["total ghg emissions"]).plot(
-                    kind="bar", stacked=True, ax=ax3, color=custom_colors
-                )
-
-                ax3.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
-                ax3.set_xlabel("Entity", fontsize=12)
-                ax3.set_title("Entity-Level Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
-                ax3.legend(title="Scope", bbox_to_anchor=(1.05, 1), loc="upper left")
-                ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45, ha="right")
-                plt.tight_layout()
-                st.pyplot(fig3)
-
-
-
-        # --- Download Button ---
-        st.subheader("📥 Download Calculated Emissions")
+        # --- Export Excel Report ---
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
-            merged_df.to_excel(writer, sheet_name="Emissions Data", index=False)
-            scope_summary.to_excel(writer, sheet_name="Scope Summary", index=False)
-            if entity_summary is not None:
-                entity_summary.to_excel(writer, sheet_name="Entity Scope Summary", index=False)
-        st.download_button("📤 Download Excel Report", output.getvalue(), "calculated_emissions.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            location_summary.to_excel(writer, sheet_name="Location Summary", index=False)
+            location_entity_summary.to_excel(writer, sheet_name="Location by Entity", index=False)
+            market_summary.to_excel(writer, sheet_name="Market Summary", index=False)
+            market_entity_summary.to_excel(writer, sheet_name="Market by Entity", index=False)
+        st.download_button("📤 Download Excel Report", output.getvalue(), "emissions_summary.xlsx")
+
+        # --- Visualization ---
+        def plot_summary_chart(summary_df, title):
+            fig, ax = plt.subplots(figsize=(6, 4))
+            sns.barplot(data=summary_df[:-1], x="scope", y="emissions (kg co2e)", ax=ax, palette="coolwarm")
+            ax.set_title(title, fontsize=14, weight="bold")
+            ax.set_ylabel("Emissions (kg CO₂e)")
+            ax.set_xlabel("")
+            st.pyplot(fig)
+
+        st.subheader("📊 Emissions by Scope (Location-Based)")
+        plot_summary_chart(location_summary, "Total Emissions by Scope (Location-Based)")
+
+        st.subheader("📊 Emissions by Scope (Market-Based)")
+        plot_summary_chart(market_summary, "Total Emissions by Scope (Market-Based)")
 
     except Exception as e:
         st.error(f"❌ Something went wrong: {e}")
 
 else:
-    st.info("👈 Upload both Activity Data and Emission Factors to begin.")
+    st.info("📈 Upload both Activity Data and Emission Factors to begin.")
