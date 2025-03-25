@@ -120,7 +120,7 @@ if activity_file and emission_file:
         # --- Visualizations ---
         # 📊 Emissions by Scope (Bar Chart)
         st.subheader("📊 Emissions by Scope")
-        col1, col2, col3 = st.columns([1, 2, 1])
+        col1, col2, col3 = st.columns([2, 1.5, 2])
         with col2:
             fig1, ax1 = plt.subplots(figsize=(5, 4))
             sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax1, palette="coolwarm")
@@ -134,7 +134,7 @@ if activity_file and emission_file:
 
         # 🎂 Share of Emissions (Pie Chart)
         st.subheader("🎂 Share of Emissions by Scope")
-        col4, col5, col6 = st.columns([1, 2, 1])
+        col4, col5, col6 = st.columns([2, 1.5, 2])
         with col5:
             fig2, ax2 = plt.subplots(figsize=(5, 5))
             colors = sns.color_palette("coolwarm")
@@ -154,7 +154,7 @@ if activity_file and emission_file:
         # 🏢 Entity-Level Emissions (Stacked Bar)
         if entity_summary is not None:
             st.subheader("🏢 Emissions by Entity and Scope")
-            col7, col8, col9 = st.columns([1, 2, 1])
+            col7, col8, col9 = st.columns([2, 1.5, 2])
             with col8:
                 fig3, ax3 = plt.subplots(figsize=(7, 5))
                 entity_summary.set_index("entity").drop(columns=["total ghg emissions"]).plot(
