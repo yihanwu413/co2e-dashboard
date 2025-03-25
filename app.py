@@ -56,13 +56,21 @@ if activity_file and emission_file:
         emission_df = pd.read_excel(emission_file)
         emission_df.columns = emission_df.columns.str.strip().str.lower()
         emission_df.rename(columns={"emission factor (location-based ef)": "location-based ef"}, inplace=True)
-        emission_df["unit"] = emission_df["unit"].str.strip().str.lower()
+
+        # Ensure text fields are strings
+        for col in ["unit", "country", "scope", "category", "activity"]:
+            if col in emission_df.columns:
+                emission_df[col] = emission_df[col].astype(str).str.strip().str.lower()
+
         emission_df["base unit"] = emission_df["unit"].apply(lambda x: x.split("/")[-1])
 
         # --- Load Activity Data ---
         activity_df = pd.read_excel(activity_file)
         activity_df.columns = activity_df.columns.str.strip().str.lower()
-        activity_df["unit"] = activity_df["unit"].str.strip().str.lower()
+
+        for col in ["unit", "country", "scope", "category", "activity"]:
+            if col in activity_df.columns:
+                activity_df[col] = activity_df[col].astype(str).str.strip().str.lower()
 
         # --- Validate Required Columns ---
         required_activity_cols = {"year", "scope", "category", "activity", "amount", "unit", "entity"}
