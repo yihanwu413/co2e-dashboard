@@ -176,6 +176,28 @@ if activity_file and emission_file:
         st.subheader("📊 Emissions by Scope (Market-Based)")
         plot_summary_chart(market_summary, "Total Emissions by Scope (Market-Based)")
 
+        # --- Entity-Level Emissions (Stacked Bar) ---
+        def plot_entity_chart(entity_df, title):
+            col1, col2, col3 = st.columns([2, 1.5, 2])
+            with col2:
+                fig, ax = plt.subplots(figsize=(6, 4))
+                entity_df.set_index("entity").drop(columns=["Total GHG Emissions"]).plot(
+                    kind="bar", stacked=True, ax=ax, colormap="coolwarm"
+                )
+                ax.set_title(title, fontsize=14, weight="bold", color="#0A3A5C")
+                ax.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
+                ax.set_xlabel("Entity", fontsize=12)
+                ax.set_xticklabels(ax.get_xticklabels(), rotation=45, ha="right")
+                ax.legend(title="Scope", bbox_to_anchor=(1.05, 1), loc="upper left")
+                plt.tight_layout()
+                st.pyplot(fig)
+
+        st.subheader("🏢 Entity-Level Emissions (Location-Based)")
+        plot_entity_chart(location_entity_summary, "Entity-Level Emissions by Scope (Location-Based)")
+
+        st.subheader("🏢 Entity-Level Emissions (Market-Based)")
+        plot_entity_chart(market_entity_summary, "Entity-Level Emissions by Scope (Market-Based)")
+
     except Exception as e:
         st.error(f"❌ Something went wrong: {e}")
 
