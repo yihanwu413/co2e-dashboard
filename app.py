@@ -121,25 +121,42 @@ if activity_file and emission_file:
         # --- Visualizations ---
         st.subheader("📊 Emissions by Scope")
         fig1, ax1 = plt.subplots(figsize=(8, 5))
-        sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax1)
-        ax.set_title("Total Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
-        ax.set_xlabel("Scope", fontsize=12)
-        ax.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
-        ax.tick_params(axis='x', labelrotation=45)
+        sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax1, palette="coolwarm")
+        ax1.set_title("Total Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
+        ax1.set_xlabel("Scope", fontsize=12)
+        ax1.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
+        ax1.tick_params(axis='x', labelrotation=45)
         sns.despine(fig1)
+        st.pyplot(fig1)
 
         st.subheader("🎂 Share of Emissions by Scope")
-        fig2, ax2 = plt.subplots()
-        ax2.pie(scope_summary[:-1]["emissions (kg co2e)"], labels=scope_summary[:-1]["scope"], autopct="%1.1f%%", colors=sns.color_palette("coolwarm"))
+        fig2, ax2 = plt.subplots(figsize=(6, 6))
+        colors = sns.color_palette("coolwarm")
+        ax2.pie(
+            scope_summary[:-1]["emissions (kg co2e)"],
+            labels=scope_summary[:-1]["scope"],
+            autopct="%1.1f%%",
+            startangle=90,
+            colors=colors,
+            textprops={"fontsize": 11, "color": "#333"}
+        )
+        ax2.set_title("Share of Emissions by Scope", fontsize=14, fontweight="bold", color="#0A3A5C")
+        ax2.axis("equal")  # Keep pie chart circular
         st.pyplot(fig2)
 
         if entity_summary is not None:
             st.subheader("🏢 Emissions by Entity and Scope")
             fig3, ax3 = plt.subplots(figsize=(10, 6))
-            entity_summary.set_index("entity").drop(columns=["total ghg emissions"]).plot(kind="bar", stacked=True, ax=ax3, colormap="coolwarm")
-            ax3.set_ylabel("Emissions (kg CO2e)")
-            ax3.set_title("Entity-Level Emissions by Scope")
-            st.pyplot(fig3)
+            entity_summary.set_index("entity").drop(columns=["total ghg emissions"]).plot(
+                kind="bar", stacked=True, ax=ax3, colormap="coolwarm"
+        )
+        ax3.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
+        ax3.set_xlabel("Entity", fontsize=12)
+        ax3.set_title("Entity-Level Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
+        ax3.legend(title="Scope", bbox_to_anchor=(1.05, 1), loc="upper left")
+        ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45, ha="right")
+        st.pyplot(fig3)
+
 
         # --- Download Button ---
         st.subheader("📥 Download Calculated Emissions")
