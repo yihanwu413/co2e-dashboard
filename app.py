@@ -65,8 +65,6 @@ if activity_file and emission_file:
         if "market-based ef" in emission_df.columns:
             emission_df["market-based ef"] = pd.to_numeric(emission_df["market-based ef"], errors="coerce")
 
-        emission_df["base unit"] = emission_df["unit"].apply(lambda x: x.split("/")[-1])
-
         # --- Load Activity Data ---
         activity_df = pd.read_excel(activity_file)
         activity_df.columns = activity_df.columns.str.strip().str.lower()
@@ -77,7 +75,7 @@ if activity_file and emission_file:
 
         # --- Validate Required Columns ---
         required_activity_cols = {"year", "scope", "category", "activity", "amount", "unit", "entity"}
-        required_factors_cols = {"year", "scope", "category", "activity", "unit"}
+        required_factors_cols = {"year", "scope", "category", "activity"}
 
         missing_act_cols = required_activity_cols - set(activity_df.columns)
         missing_fac_cols = required_factors_cols - set(emission_df.columns)
@@ -103,11 +101,10 @@ if activity_file and emission_file:
         scope2_merged["location-based"] = scope2_merged["amount"] * scope2_merged["location-based ef"]
         scope2_merged["market-based"] = scope2_merged["amount"] * scope2_merged["market-based ef"]
 
-        # --- Merge other scopes (ignore country) ---
+        # --- Merge other scopes (ignoring unit) ---
         other_merged = other_scopes_df.merge(
-            emission_df.drop(columns=["country"], errors="ignore"),
-            left_on=["year", "scope", "category", "activity", "unit"],
-            right_on=["year", "scope", "category", "activity", "base unit"],
+            emission_df.drop(columns=["unit"]).drop_duplicates(),
+            on=["year", "scope", "category", "activity"],
             how="left"
         )
         other_merged["location-based ef"] = pd.to_numeric(other_merged["location-based ef"], errors="coerce")
