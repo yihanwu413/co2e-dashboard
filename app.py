@@ -5,7 +5,7 @@ import seaborn as sns
 import io
 
 st.set_page_config(page_title="CO₂e Emissions Dashboard", layout="wide")
-st.title("📊 CO₂e Emissions Dashboard")
+st.title("CO₂e Emissions Dashboard")
 
 # --- Downloadable Templates ---
 with st.expander("📂 Download Excel Templates"):
