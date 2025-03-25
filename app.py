@@ -3,18 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Load Data
-@st.cache_data
-def load_data():
-    file_path = "calculated_emissions.xlsx"
-    with pd.ExcelFile(file_path) as xls:
-        emissions_data = pd.read_excel(xls, sheet_name="Emissions Data")
-        scope_summary = pd.read_excel(xls, sheet_name="Scope Summary")
-        entity_scope_summary = pd.read_excel(xls, sheet_name="Entity Scope Summary") if "Entity Scope Summary" in xls.sheet_names else None
-    return emissions_data, scope_summary, entity_scope_summary
-
-# Load Data
-emissions_data, scope_summary, entity_scope_summary = load_data()
 
 # Streamlit Layout
 st.title("📊 CO2e Emissions Dashboard")
