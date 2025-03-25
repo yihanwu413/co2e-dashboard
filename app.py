@@ -176,13 +176,16 @@ if activity_file and emission_file:
         st.subheader("📊 Emissions by Scope (Market-Based)")
         plot_summary_chart(market_summary, "Total Emissions by Scope (Market-Based)")
 
+       # --- Custom Color Palette (Worldfavor-inspired) ---
+        worldfavor_colors = ["#3A89C9", "#63C1C8", "#A2D5F2", "#CED9E0"]
+
         # --- Entity-Level Emissions (Stacked Bar) ---
         def plot_entity_chart(entity_df, title):
             col1, col2, col3 = st.columns([2, 1.5, 2])
             with col2:
                 fig, ax = plt.subplots(figsize=(6, 4))
                 entity_df.set_index("entity").drop(columns=["Total GHG Emissions"]).plot(
-                    kind="bar", stacked=True, ax=ax, colormap="coolwarm"
+                    kind="bar", stacked=True, ax=ax, color=worldfavor_colors
                 )
                 ax.set_title(title, fontsize=14, weight="bold", color="#0A3A5C")
                 ax.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
