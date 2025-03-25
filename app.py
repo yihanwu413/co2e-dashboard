@@ -36,7 +36,7 @@ with st.expander("📂 Download Excel Templates"):
             "Country": ["UK"],
             "Category": ["Electricity"],
             "Activity": ["Purchased electricity"],
-            "Emission Factor (location-based ef)": [0.233],
+            "Emission Factor": [0.233],
             "Market-Based EF": [0.160],
             "Unit": ["kgCO2e/kWh"]
         })
@@ -55,9 +55,8 @@ if activity_file and emission_file:
         # --- Load Emission Factors ---
         emission_df = pd.read_excel(emission_file)
         emission_df.columns = emission_df.columns.str.strip().str.lower()
-        emission_df.rename(columns={"emission factor (location-based ef)": "location-based ef"}, inplace=True)
+        emission_df.rename(columns={"emission factor": "location-based ef"}, inplace=True)
 
-        # Ensure text fields are strings
         for col in ["unit", "country", "scope", "category", "activity"]:
             if col in emission_df.columns:
                 emission_df[col] = emission_df[col].astype(str).str.strip().str.lower()
