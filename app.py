@@ -157,9 +157,13 @@ if activity_file and emission_file:
             col7, col8, col9 = st.columns([2, 1.5, 2])
             with col8:
                 fig3, ax3 = plt.subplots(figsize=(7, 5))
+
+                custom_colors = ["#0A3A5C", "#5097BA", "#87C4E0"]  # Replace or extend with your brand colors
+
                 entity_summary.set_index("entity").drop(columns=["total ghg emissions"]).plot(
-                    kind="bar", stacked=True, ax=ax3, colormap="coolwarm"
+                    kind="bar", stacked=True, ax=ax3, color=custom_colors
                 )
+
                 ax3.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
                 ax3.set_xlabel("Entity", fontsize=12)
                 ax3.set_title("Entity-Level Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
@@ -167,6 +171,7 @@ if activity_file and emission_file:
                 ax3.set_xticklabels(ax3.get_xticklabels(), rotation=45, ha="right")
                 plt.tight_layout()
                 st.pyplot(fig3)
+
 
 
         # --- Download Button ---
