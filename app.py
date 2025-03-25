@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import io
 
+sns.set_theme(style="whitegrid", palette="coolwarm")
+
 st.set_page_config(page_title="CO₂e Emissions Dashboard", layout="wide")
 st.title("CO₂e Emissions Dashboard")
 
