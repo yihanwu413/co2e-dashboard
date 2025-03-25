@@ -119,7 +119,7 @@ if activity_file and emission_file:
 
         # --- Visualizations ---
         st.subheader("📊 Emissions by Scope")
-        fig1, ax1 = plt.subplots(figsize=(6, 3))
+        fig1, ax1 = plt.subplots(figsize=(5, 4))
         sns.barplot(data=scope_summary[:-1], x="scope", y="emissions (kg co2e)", ax=ax1, palette="coolwarm")
         ax1.set_title("Total Emissions by Scope", fontsize=16, fontweight="bold", color="#0A3A5C")
         ax1.set_xlabel("Scope", fontsize=12)
@@ -129,7 +129,7 @@ if activity_file and emission_file:
         st.pyplot(fig1)
 
         st.subheader("🎂 Share of Emissions by Scope")
-        fig2, ax2 = plt.subplots(figsize=(6, 6))
+        fig2, ax2 = plt.subplots(figsize=(5, 5))
         colors = sns.color_palette("coolwarm")
         ax2.pie(
             scope_summary[:-1]["emissions (kg co2e)"],
@@ -145,7 +145,7 @@ if activity_file and emission_file:
 
         if entity_summary is not None:
             st.subheader("🏢 Emissions by Entity and Scope")
-            fig3, ax3 = plt.subplots(figsize=(10, 6))
+            fig3, ax3 = plt.subplots(figsize=(7, 5))
             entity_summary.set_index("entity").drop(columns=["total ghg emissions"]).plot(
                 kind="bar", stacked=True, ax=ax3, colormap="coolwarm"
         )
