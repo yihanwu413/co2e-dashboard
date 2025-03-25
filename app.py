@@ -159,16 +159,20 @@ if activity_file and emission_file:
 
         # --- Visualization ---
         def plot_summary_chart(summary_df, title):
-            fig, ax = plt.subplots(figsize=(6, 4))
-            sns.barplot(data=summary_df[:-1], x="scope", y="emissions (kg co2e)", ax=ax, palette="coolwarm")
-            ax.set_title(title, fontsize=14, weight="bold")
-            ax.set_ylabel("Emissions (kg CO₂e)")
-            ax.set_xlabel("")
-            st.pyplot(fig)
+            col1, col2, col3 = st.columns([2, 1.5, 2])
+            with col2:
+                fig, ax = plt.subplots(figsize=(5, 4))
+                sns.barplot(data=summary_df[:-1], x="scope", y="emissions (kg co2e)", ax=ax, palette="coolwarm")
+                ax.set_title(title, fontsize=14, weight="bold", color="#0A3A5C")
+                ax.set_ylabel("Emissions (kg CO₂e)", fontsize=12)
+                ax.set_xlabel("", fontsize=12)
+                ax.tick_params(axis="x", labelrotation=45)
+                sns.despine()
+                st.pyplot(fig)
 
         st.subheader("📊 Emissions by Scope (Location-Based)")
         plot_summary_chart(location_summary, "Total Emissions by Scope (Location-Based)")
-
+    
         st.subheader("📊 Emissions by Scope (Market-Based)")
         plot_summary_chart(market_summary, "Total Emissions by Scope (Market-Based)")
 
