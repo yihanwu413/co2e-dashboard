@@ -101,13 +101,12 @@ if activity_file and emission_file:
         scope2_merged["location-based"] = scope2_merged["amount"] * scope2_merged["location-based ef"]
         scope2_merged["market-based"] = scope2_merged["amount"] * scope2_merged["market-based ef"]
 
-        # --- Merge other scopes (ignoring unit) ---
+        # --- Merge other scopes without country ---
         other_merged = other_scopes_df.merge(
-            emission_df.drop(columns=["unit"]).drop_duplicates(),
+            emission_df.drop(columns=["country", "unit", "market-based ef"], errors="ignore").drop_duplicates(),
             on=["year", "scope", "category", "activity"],
             how="left"
         )
-        other_merged["location-based ef"] = pd.to_numeric(other_merged["location-based ef"], errors="coerce")
         other_merged["emissions (kg co2e)"] = other_merged["amount"] * other_merged["location-based ef"]
 
         # --- Combine for Location-Based and Market-Based Reporting ---
@@ -172,11 +171,11 @@ if activity_file and emission_file:
 
         st.subheader("📊 Emissions by Scope (Location-Based)")
         plot_summary_chart(location_summary, "Total Emissions by Scope (Location-Based)")
-    
+
         st.subheader("📊 Emissions by Scope (Market-Based)")
         plot_summary_chart(market_summary, "Total Emissions by Scope (Market-Based)")
 
-       # --- Custom Color Palette (Worldfavor-inspired) ---
+        # --- Custom Color Palette (Worldfavor-inspired) ---
         worldfavor_colors = ["#3A89C9", "#63C1C8", "#A2D5F2", "#CED9E0"]
 
         # --- Entity-Level Emissions (Stacked Bar) ---
